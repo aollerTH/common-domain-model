@@ -1,0 +1,90 @@
+name: Java CI with Maven
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+ 
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    env:
+      # GPG config demo - should be handled through secrets?
+      # GPG_KEYNAME: "${{secrets.GPG_KEYNAME}}"
+      GPG_PASSPHRASE: "${{secrets.GPG_PASSPHRASE}}"
+      GPG_PRIVATE_KEY: "${{secrets.GPG_PRIVATE_KEY}}"
+      
+      REPO_PATH: "$GITHUB_WORKSPACE" # $GITHUB_SERVER_URL/$GITHUB_REPOSITORY
+      MVN_DEPLOY_FLAGS: "-s $GITHUB_WORKSPACE/settings.xml -Dmaven.repo.local=$GITHUB_WORKSPACE/.m2 -Denv.CI_DEPLOY_PASSWORD=$GITHUB_TOKEN -Denv.CI_DEPLOY_USERNAME=$GITHUB_USER -Denv.GPG_KEYNAME=${{secrets.GPG_KEYNAME}} -Denv.GPG_PASSPHRASE=${{secrets.GPG_PASSPHRASE}}"
+      MVN_BUILD_FLAGS: "-Dmaven.repo.local=$GITHUB_WORKSPACE/.m2"
+      # GPG_IMPORT_COMMAND: "cat <(echo -e '${{GPG_PRIVATE_KEY}}') | gpg --batch --import"
+      GEN_DEPLOY_POM_SCRIPT: "$GITHUB_WORKSPACE/rosetta-source/src/main/resources/build-resources/create-deploy-pom.sh"
+      GEN_DEPLOY_POM_PY: "$GITHUB_WORKSPACE/rosetta-source/src/main/resources/build-resources/create-deploy-pom.py"
+ 
+    steps:
+      - name: main_clone
+        uses: actions/checkout@v2
+      
+      - name: SetProperties
+        shell: bash
+        run: |
+          echo "REPO_PATH: ${{env.REPO_PATH}}"
+          echo "MVN_DEPLOY_FLAGS: ${{env.MVN_DEPLOY_FLAGS}}"
+          echo "MVN_BUILD_FLAGS: ${{env.MVN_BUILD_FLAGS}}"
+          echo "GPG_IMPORT_COMMAND: ${{env.GPG_IMPORT_COMMAND}}"
+          echo "GEN_DEPLOY_POM_SCRIPT: ${{env.GEN_DEPLOY_POM_SCRIPT}}"
+          echo "GEN_DEPLOY_POM_PY: ${{env.GEN_DEPLOY_POM_PY}}"
+        env:
+          GPG_IMPORT_COMMAND: "cat <(echo -e '${{env.GPG_PRIVATE_KEY}}') | gpg --batch --import"
+
+      - name: ReleaseProperties
+        shell: bash
+        run: |
+          echo "RELEASE_NAME: ${{env.RELEASE_NAME}}"
+          echo "MAVEN_BUILD_PROFILES: ${{env.MAVEN_BUILD_PROFILES}}"
+          echo "MVN_DEPLOY_FILE_FLAGS: ${{env.MVN_DEPLOY_FILE_FLAGS}}"
+        env:
+          RELEASE_NAME: "$GITHUB.REF" #TBD
+          MAVEN_BUILD_PROFILES: "daml,scala,typescript,golang,csharp8,csharp9,kotlin,python,full,gpg,excel"
+          MVN_DEPLOY_FILE_FLAGS: "${{env.MVN_BUILD_FLAGS}} ${{env.MVN_DEPLOY_FLAGS}} -Durl=https://oss.sonatype.org/service/local/staging/deploy/maven2 -DrepositoryId=ossrh-distro -Dgpg.passphrase=${{env.GPG_PASSPHRASE}}"
+          
+      - name: SnapshotProperties
+        shell: bash
+        run: |
+          echo "RELEASE_NAME: ${{env.RELEASE_NAME}}"
+          echo "MAVEN_BUILD_PROFILES: ${{env.MAVEN_BUILD_PROFILES}}"
+          echo "MVN_DEPLOY_FILE_FLAGS: ${{env.MVN_DEPLOY_FILE_FLAGS}}"
+        env:
+          RELEASE_NAME: "$GITHUB.REF-SNAPSHOT" #how to get branch tag
+          MAVEN_BUILD_PROFILES: "daml,scala,typescript,golang,csharp8,csharp9,kotlin,python,gpg,excel"
+          MVN_DEPLOY_FILE_FLAGS: "${{env.MVN_BUILD_FLAGS}} ${{env.MVN_DEPLOY_FLAGS}} -Durl=https://oss.sonatype.org/content/repositories/snapshots -DrepositoryId=ossrh -Dgpg.passphrase=${{env.GPG_PASSPHRASE}}"
+
+  build:
+    needs: setup
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Build CI
+        run:
+          echo "Testing build ci"
+  
+  distribute:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      # Steps for distribution if needed
+      - name: Build CI
+        run:
+          echo "Testing distribute ci"
+  
+  finalise:
+    needs: distribute
+    runs-on: ubuntu-latest
+
+    steps:
+      # Steps for finalizing the process if needed
+      - name: Build CI
+        run:
+          echo "Testing finalize ci"
