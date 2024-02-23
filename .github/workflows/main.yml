@@ -18,6 +18,8 @@ on:
 jobs:
   setup:
     runs-on: ubuntu-latest
+    outputs:
+      gpg_import_command: ${{ steps.set_env.outputs.gpg_import_command }}
     env:
       # GPG config demo - should be handled through secrets?
       # GPG_KEYNAME: "${{secrets.GPG_KEYNAME}}"
@@ -44,8 +46,8 @@ jobs:
           echo "GPG_IMPORT_COMMAND: ${{env.GPG_IMPORT_COMMAND}}"
           echo "GEN_DEPLOY_POM_SCRIPT: ${{env.GEN_DEPLOY_POM_SCRIPT}}"
           echo "GEN_DEPLOY_POM_PY: ${{env.GEN_DEPLOY_POM_PY}}"
-        env:
-          GPG_IMPORT_COMMAND: "cat <(echo -e '${{secrets.GPG_PRIVATE_KEY}}') | gpg --batch --import"
+          echo "::set-output name=gpg_import_command::cat <(echo -e '${{secrets.GPG_PRIVATE_KEY}}') | gpg --batch --import"
+
           
 
       - name: ReleaseProperties
@@ -90,7 +92,7 @@ jobs:
         run: |
           # Your GPG import command goes here
           # Example: echo "${GPG_PRIVATE_KEY}" | gpg --batch --import
-          echo "${{ secrets.GPG_PRIVATE_KEY }}" | gpg --batch --import
+          echo "${{ needs.setup.outputs.gpg_import_command }}"
       - name: Maven build
         #working-directory: ../../
         run: |
