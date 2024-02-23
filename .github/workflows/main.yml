@@ -99,6 +99,7 @@ jobs:
       - name: Maven build
         #working-directory: ../../
         run: |
+          echo ${{ needs.setup.outputs.mvn_build_flags }}
           pwd
           ls -la
           echo "RELEASE_NAME: ${{env.RELEASE_NAME}}"
