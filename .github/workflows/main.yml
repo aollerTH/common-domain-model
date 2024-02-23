@@ -20,6 +20,8 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       gpg_import_command: ${{ steps.set_env.outputs.gpg_import_command }}
+      mvn_build_flags: ${{ steps.set_env.outputs.mvn_build_flags }}
+
     env:
       # GPG config demo - should be handled through secrets?
       # GPG_KEYNAME: "${{secrets.GPG_KEYNAME}}"
@@ -43,6 +45,7 @@ jobs:
           echo "REPO_PATH: ${{env.REPO_PATH}}"
           echo "MVN_DEPLOY_FLAGS: ${{env.MVN_DEPLOY_FLAGS}}"
           echo "MVN_BUILD_FLAGS: ${{env.MVN_BUILD_FLAGS}}"
+          echo "::set-output name=mvn_build_flags::${{env.MVN_BUILD_FLAGS}}"
           echo "GPG_IMPORT_COMMAND: ${{env.GPG_IMPORT_COMMAND}}"
           echo "GEN_DEPLOY_POM_SCRIPT: ${{env.GEN_DEPLOY_POM_SCRIPT}}"
           echo "GEN_DEPLOY_POM_PY: ${{env.GEN_DEPLOY_POM_PY}}"
