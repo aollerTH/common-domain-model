@@ -19,8 +19,7 @@ jobs:
   setup:
     runs-on: ubuntu-latest
     outputs:
-      gpg_import_command: ${{ steps.set_env.outputs.gpg_import_command }}
-      mvn_build_flags: ${{ steps.set_env.outputs.mvn_build_flags }}
+      mockval: ${{ steps.setup.outputs.mockval }}
 
     env:
       # GPG config demo - should be handled through secrets?
@@ -42,6 +41,8 @@ jobs:
       - name: SetProperties
         shell: bash
         run: |
+          myVAL = "mockvalaa"
+          echo "mockval=$myVAL" >> "$GITHUB_ENV"
           echo "REPO_PATH: ${{env.REPO_PATH}}"
           echo "MVN_DEPLOY_FLAGS: ${{env.MVN_DEPLOY_FLAGS}}"
           echo "MVN_BUILD_FLAGS: ${{env.MVN_BUILD_FLAGS}}"
@@ -95,6 +96,9 @@ jobs:
         run: |
           # Your GPG import command goes here
           # Example: echo "${GPG_PRIVATE_KEY}" | gpg --batch --import
+          MOCKVAL="${{ needs.setup.outputs.mockval }}"
+          echo "${{ needs.setup.mockval }}"
+          echo "::add-mask::$RETRIEVED_SECRET"
           echo "${{ needs.setup.outputs.gpg_import_command }}"
       - name: Maven build
         #working-directory: ../../
