@@ -41,7 +41,7 @@ jobs:
       - name: SetProperties
         shell: bash
         run: |
-          myVAL = "mockvalaa"
+          myVAL="mockvalaa"
           echo "mockval=$myVAL" >> "$GITHUB_ENV"
           echo "REPO_PATH: ${{env.REPO_PATH}}"
           echo "MVN_DEPLOY_FLAGS: ${{env.MVN_DEPLOY_FLAGS}}"
