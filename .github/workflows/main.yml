@@ -1,3 +1,12 @@
+# TH GITHUB ACTIONS TESTING
+# This workflow will build a Java project with Maven, and cache/restore any dependencies to improve the workflow execution time
+# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-java-with-maven
+
+# This workflow uses actions that are not certified by GitHub.
+# They are provided by a third-party and are governed by
+# separate terms of service, privacy policy, and support
+# documentation.
+
 name: Java CI with Maven
 
 on:
@@ -36,27 +45,33 @@ jobs:
           echo "GEN_DEPLOY_POM_SCRIPT: ${{env.GEN_DEPLOY_POM_SCRIPT}}"
           echo "GEN_DEPLOY_POM_PY: ${{env.GEN_DEPLOY_POM_PY}}"
         env:
-          GPG_IMPORT_COMMAND: "cat <(echo -e '${{env.GPG_PRIVATE_KEY}}') | gpg --batch --import"
+          GPG_IMPORT_COMMAND: "cat <(echo -e '${{secrets.GPG_PRIVATE_KEY}}') | gpg --batch --import"
+          
 
       - name: ReleaseProperties
+        #if: ${{ github.event_name == 'push' && github.event.ref_type == 'tag' }}
         shell: bash
         run: |
+          echo "Event name: ${{ github.event_name }}"
+          echo "${RELEASE_NAME_GO}" | sed 's|^refs/tags/||'
           echo "RELEASE_NAME: ${{env.RELEASE_NAME}}"
           echo "MAVEN_BUILD_PROFILES: ${{env.MAVEN_BUILD_PROFILES}}"
           echo "MVN_DEPLOY_FILE_FLAGS: ${{env.MVN_DEPLOY_FILE_FLAGS}}"
         env:
-          RELEASE_NAME: "$GITHUB.REF" #TBD
+          RELEASE_NAME: "${{ github.ref }}" #TBD
+          RELEASE_NAME_GO: ${{ github.ref }}
           MAVEN_BUILD_PROFILES: "daml,scala,typescript,golang,csharp8,csharp9,kotlin,python,full,gpg,excel"
           MVN_DEPLOY_FILE_FLAGS: "${{env.MVN_BUILD_FLAGS}} ${{env.MVN_DEPLOY_FLAGS}} -Durl=https://oss.sonatype.org/service/local/staging/deploy/maven2 -DrepositoryId=ossrh-distro -Dgpg.passphrase=${{env.GPG_PASSPHRASE}}"
           
       - name: SnapshotProperties
+        if: ${{ github.event_name == 'push' && github.event.ref_type != 'tag' }}
         shell: bash
         run: |
           echo "RELEASE_NAME: ${{env.RELEASE_NAME}}"
           echo "MAVEN_BUILD_PROFILES: ${{env.MAVEN_BUILD_PROFILES}}"
           echo "MVN_DEPLOY_FILE_FLAGS: ${{env.MVN_DEPLOY_FILE_FLAGS}}"
         env:
-          RELEASE_NAME: "$GITHUB.REF-SNAPSHOT" #how to get branch tag
+          RELEASE_NAME: "${{ github.ref }}-SNAPSHOT" #how to get branch tag
           MAVEN_BUILD_PROFILES: "daml,scala,typescript,golang,csharp8,csharp9,kotlin,python,gpg,excel"
           MVN_DEPLOY_FILE_FLAGS: "${{env.MVN_BUILD_FLAGS}} ${{env.MVN_DEPLOY_FLAGS}} -Durl=https://oss.sonatype.org/content/repositories/snapshots -DrepositoryId=ossrh -Dgpg.passphrase=${{env.GPG_PASSPHRASE}}"
 
@@ -65,9 +80,33 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Build CI
-        run:
-          echo "Testing build ci"
+      - name: Setup JDK
+        uses: actions/setup-java@v2
+        with:
+          distribution: 'adopt'
+          java-version: '11'
+
+      - name: Import GPG Key
+        run: |
+          # Your GPG import command goes here
+          # Example: echo "${GPG_PRIVATE_KEY}" | gpg --batch --import
+          echo "${{ secrets.GPG_PRIVATE_KEY }}" | gpg --batch --import
+      - name: Maven build
+        #working-directory: ../../
+        run: |
+          pwd
+          ls -la
+          echo "RELEASE_NAME: ${{env.RELEASE_NAME}}"
+          echo "MVN_BUILD_FLAGS: ${{env.MVN_BUILD_FLAGS}}"
+          echo "REPO_PATH: ${{env.REPO_PATH}}"
+          mvn ${{ env.MVN_BUILD_FLAGS }} versions:set -DnewVersion=${{ env.RELEASE_NAME }} versions:update-child-modules -DallowSnapshots=true
+          mvn ${{ env.MVN_DEPLOY_FLAGS }} clean deploy -P "${{ env.MAVEN_BUILD_PROFILES }}"
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+          MVN_BUILD_FLAGS: ${{ env.MVN_BUILD_FLAGS }}
+          RELEASE_NAME: ${{ env.RELEASE_NAME }}
+          MVN_DEPLOY_FLAGS: ${{ env.MVN_DEPLOY_FLAGS }}
+          MAVEN_BUILD_PROFILES: ${{ env.MAVEN_BUILD_PROFILES }}
   
   distribute:
     needs: build
