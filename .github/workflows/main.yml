@@ -43,6 +43,8 @@ jobs:
         run: |
           myVAL="mockvalaa"
           echo "mockval=$myVAL" >> "$GITHUB_ENV"
+          echo "mockval=$myVAL" | tee -a "$GITHUB_STEP_SUMMARY"
+          echo "::set-output name=mockval::$myVAL"
           echo "REPO_PATH: ${{env.REPO_PATH}}"
           echo "MVN_DEPLOY_FLAGS: ${{env.MVN_DEPLOY_FLAGS}}"
           echo "MVN_BUILD_FLAGS: ${{env.MVN_BUILD_FLAGS}}"
@@ -97,7 +99,7 @@ jobs:
           # Your GPG import command goes here
           # Example: echo "${GPG_PRIVATE_KEY}" | gpg --batch --import
           MOCKVAL="${{ needs.setup.outputs.mockval }}"
-          echo "${{ needs.setup.mockval }}"
+          echo "MOCKVAL: $MOCKVAL"
           echo "::add-mask::$RETRIEVED_SECRET"
           echo "${{ needs.setup.outputs.gpg_import_command }}"
       - name: Maven build
